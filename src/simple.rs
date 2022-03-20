@@ -1,0 +1,3 @@
+fn scope() {
+    web::scope("")
+}
