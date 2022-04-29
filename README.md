@@ -8,15 +8,16 @@ As for some reason all browsers send `Mozilla` this is going to be used for now.
 
 For a browser this will return a HTML with the file embeded with added controlls for e.g. delete the entry. For all other requests (mainly things like curl) the file will be returned as raw data.
 
-- get("/:id")       ->  return entry as text
-- get("/:id.bin")   ->  return entry as binary
-- get("/:id.:ext")  ->  return entry as the expect type for the extension
+- get("/:id")                   ->  return entry as text
+- get("/:id.bin")               ->  return entry as binary
+- get("/:id.bin?mime={mime}")   ->  return entry as binary, set mime type to `mime`
+- get("/:id.:ext")              ->  return entry as the expect type for the extension
 
 ### Delete entry
 There is the semantically correct way of deleting data using delete requests, but to make the website work without JS because there are people like that, it also supports using ?delete with a get request.
 
 - delete("/:id")
-- get("/:id?delete")
+- get("/:id/delete")
 
 ### Add entry
 There are multiple ways of to add entries.

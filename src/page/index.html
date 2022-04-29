@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset='utf-8'>
+    <meta http-equiv='X-UA-Compatible' content='IE=edge'>
+    <title>Paste</title>
+    <meta name='viewport' content='width=device-width, initial-scale=1'>
+    <style>{style}</style>
+</head>
+
+<body>
+    <form method="post" enctype="multipart/form-data" class="grow">
+        <input-container class="grow">
+            <textarea name="data" id="text" autocomplete="off" required="required" placeholder="Some code"></textarea>
+            <border>
+                <left-border> </left-border>
+                <bottom-border>
+                    <label for="text">Paste here</label>
+                </bottom-border>
+                <right-border> </right-border>
+            </border>
+        </input-container>
+        <input-container>
+            <input name="extension" type="text" id="extention" placeholder="ext" />
+            <border>
+                <left-border> </left-border>
+                <bottom-border>
+                    <label for="extension">Extension</label>
+                </bottom-border>
+                <right-border> </right-border>
+            </border>
+        </input-container>
+        <input class="btn filled blue" type="submit" value="Paste" />
+    </form>
+    <form method="post" enctype="multipart/form-data">
+        <input-container style="flex-direction:column; gap: 1ex">
+            You can also upload a file directly:
+            <div style="display: flex;">
+                <input style="flex-grow: 1" name="data" autocomplete="off" id="file" required="required" placeholder="Some code" type="file"></input>
+                <input class="btn filled blue" type="submit" value="Paste" />
+            </div>
+        </input-container>
+    </form>
+</body>
+
+</html>

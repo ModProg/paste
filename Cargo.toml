@@ -2,11 +2,32 @@
 name = "pastemp"
 version = "0.1.0"
 edition = "2021"
-
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+actix-multipart = "0.4.0"
 actix-web = "4.0.1"
-bonsaidb = { version = "0.3.0", features = ["local-full"] }
+actix-web-codegen = { path = "../actix-web/actix-web-codegen/" }
+actix-web-lab = "0.15.0"
+anyhow = "1.0.56"
+async-trait = "0.1.53"
+bonsaidb = { git = "https://github.com/khonsulabs/bonsaidb", features = ["local-full"] }
+bonsaidb-files = { git = "https://github.com/khonsulabs/bonsaidb", features = ["async"] }
+derive_more = "0.99.17"
+
 env_logger = "0.9.0"
+futures = "0.3.21"
+futures-util = "0.3.21"
+log = "0.4.16"
+rand = "0.8.5"
+serde = "1.0.136"
+thiserror = "1.0.30"
 tokio = { version = "1.17.0", features = ["full"] }
+url = { version = "2.2.2", features = ["serde"] }
+mime_guess = "2.0.4"
+serde_with = "1.13.0"
+syntect = "4.6.0"
+
+[dependencies.figment]
+ version = "0.10.6"
+ features = ["toml", "env"] 
