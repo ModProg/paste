@@ -240,6 +240,8 @@ dependencies = [
 [[package]]
 name = "actix-web-codegen"
 version = "4.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7525bedf54704abb1d469e88d7e7e9226df73778798a69cea5022d53b2ae91bc"
 dependencies = [
  "actix-router",
  "proc-macro2",
@@ -250,8 +252,7 @@ dependencies = [
 [[package]]
 name = "actix-web-codegen"
 version = "4.0.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7525bedf54704abb1d469e88d7e7e9226df73778798a69cea5022d53b2ae91bc"
+source = "git+https://github.com/ModProg/actix-web?branch=advanced_route_macro#70c4ed788f93461198a1e6ebe06ca6412f3643f8"
 dependencies = [
  "actix-router",
  "proc-macro2",
@@ -579,7 +580,7 @@ dependencies = [
 [[package]]
 name = "bonsaidb"
 version = "0.4.0"
-source = "git+https://github.com/khonsulabs/bonsaidb#6821227c01931209de9f5ae244ad7bdb017e6f7d"
+source = "git+https://github.com/khonsulabs/bonsaidb#15caccaa97d87baee40a805375164a951d6d6f97"
 dependencies = [
  "bonsaidb-core",
  "bonsaidb-local",
@@ -589,7 +590,7 @@ dependencies = [
 [[package]]
 name = "bonsaidb-core"
 version = "0.4.0"
-source = "git+https://github.com/khonsulabs/bonsaidb#6821227c01931209de9f5ae244ad7bdb017e6f7d"
+source = "git+https://github.com/khonsulabs/bonsaidb#15caccaa97d87baee40a805375164a951d6d6f97"
 dependencies = [
  "actionable",
  "arc-bytes",
@@ -616,7 +617,7 @@ dependencies = [
 [[package]]
 name = "bonsaidb-files"
 version = "0.1.0"
-source = "git+https://github.com/khonsulabs/bonsaidb#6821227c01931209de9f5ae244ad7bdb017e6f7d"
+source = "git+https://github.com/khonsulabs/bonsaidb#15caccaa97d87baee40a805375164a951d6d6f97"
 dependencies = [
  "bonsaidb-core",
  "bonsaidb-utils",
@@ -632,7 +633,7 @@ dependencies = [
 [[package]]
 name = "bonsaidb-local"
 version = "0.4.0"
-source = "git+https://github.com/khonsulabs/bonsaidb#6821227c01931209de9f5ae244ad7bdb017e6f7d"
+source = "git+https://github.com/khonsulabs/bonsaidb#15caccaa97d87baee40a805375164a951d6d6f97"
 dependencies = [
  "argon2",
  "async-trait",
@@ -642,6 +643,7 @@ dependencies = [
  "byteorder",
  "chacha20poly1305",
  "clap",
+ "crossterm",
  "derive-where",
  "easy-parallel",
  "flume",
@@ -671,7 +673,7 @@ dependencies = [
 [[package]]
 name = "bonsaidb-macros"
 version = "0.4.0"
-source = "git+https://github.com/khonsulabs/bonsaidb#6821227c01931209de9f5ae244ad7bdb017e6f7d"
+source = "git+https://github.com/khonsulabs/bonsaidb#15caccaa97d87baee40a805375164a951d6d6f97"
 dependencies = [
  "attribute-derive",
  "proc-macro-crate",
@@ -686,7 +688,7 @@ dependencies = [
 [[package]]
 name = "bonsaidb-utils"
 version = "0.4.0"
-source = "git+https://github.com/khonsulabs/bonsaidb#6821227c01931209de9f5ae244ad7bdb017e6f7d"
+source = "git+https://github.com/khonsulabs/bonsaidb#15caccaa97d87baee40a805375164a951d6d6f97"
 
 [[package]]
 name = "brotli"
@@ -961,6 +963,31 @@ checksum = "0bf124c720b7686e3c2663cf54062ab0f68a88af2fb6a030e87e30bf721fcb38"
 dependencies = [
  "cfg-if",
  "lazy_static",
+]
+
+[[package]]
+name = "crossterm"
+version = "0.23.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a2102ea4f781910f8a5b98dd061f4c2023f479ce7bb1236330099ceb5a93cf17"
+dependencies = [
+ "bitflags",
+ "crossterm_winapi",
+ "libc",
+ "mio",
+ "parking_lot",
+ "signal-hook",
+ "signal-hook-mio",
+ "winapi",
+]
+
+[[package]]
+name = "crossterm_winapi"
+version = "0.9.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "2ae1b35a484aa10e07fe0638d02301c5ad24de82d310ccbd2f3693da5f09bf1c"
+dependencies = [
+ "winapi",
 ]
 
 [[package]]
@@ -1511,9 +1538,9 @@ dependencies = [
 
 [[package]]
 name = "http"
-version = "0.2.6"
+version = "0.2.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "31f4c6746584866f0feabcc69893c5b51beef3831656a968ed7ae254cdc4fd03"
+checksum = "ff8670570af52249509a86f5e3e18a08c60b177071826898fde8997cf5f6bfbb"
 dependencies = [
  "bytes",
  "fnv",
@@ -1636,9 +1663,9 @@ checksum = "830d08ce1d1d941e6b30645f1a0eb5643013d835ce3779a5fc208261dbe10f55"
 
 [[package]]
 name = "libc"
-version = "0.2.124"
+version = "0.2.125"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "21a41fed9d98f27ab1c6d161da622a4fa35e8a54a8adc24bbf3ddd0ef70b0e50"
+checksum = "5916d2ae698f6de9bfb891ad7a8d65c09d232dc58cc4ac433c7da3b2fd84bc2b"
 
 [[package]]
 name = "line-wrap"
@@ -1965,7 +1992,7 @@ version = "0.1.0"
 dependencies = [
  "actix-multipart",
  "actix-web",
- "actix-web-codegen 4.0.0",
+ "actix-web-codegen 4.0.0 (git+https://github.com/ModProg/actix-web?branch=advanced_route_macro)",
  "actix-web-lab",
  "anyhow",
  "async-trait",
@@ -2453,6 +2480,27 @@ dependencies = [
 ]
 
 [[package]]
+name = "signal-hook"
+version = "0.3.13"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "647c97df271007dcea485bb74ffdb57f2e683f1306c854f468a0c244badabf2d"
+dependencies = [
+ "libc",
+ "signal-hook-registry",
+]
+
+[[package]]
+name = "signal-hook-mio"
+version = "0.2.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "29ad2e15f37ec9a6cc544097b78a1ec90001e9f71b81338ca39f430adaca99af"
+dependencies = [
+ "libc",
+ "mio",
+ "signal-hook",
+]
+
+[[package]]
 name = "signal-hook-registry"
 version = "1.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2531,9 +2579,9 @@ checksum = "6bdef32e8150c2a081110b42772ffe7d7c9032b606bc226c8260fd97e0976601"
 
 [[package]]
 name = "syn"
-version = "1.0.91"
+version = "1.0.92"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b683b2b825c8eef438b77c36a06dc262294da3d5a5813fac20da149241dcd44d"
+checksum = "7ff7c592601f11445996a06f8ad0c27f094a58857c2f89e97974ab9235b92c52"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -2576,9 +2624,9 @@ dependencies = [
 
 [[package]]
 name = "sysinfo"
-version = "0.23.10"
+version = "0.23.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4eea2ed6847da2e0c7289f72cb4f285f0bd704694ca067d32be811b2a45ea858"
+checksum = "3bf915673a340ee41f2fc24ad1286c75ea92026f04b65a0d0e5132d80b95fc61"
 dependencies = [
  "cfg-if",
  "core-foundation-sys",
@@ -2658,9 +2706,9 @@ checksum = "cda74da7e1a664f795bb1f8a87ec406fb89a02522cf6e50620d016add6dbbf5c"
 
 [[package]]
 name = "tokio"
-version = "1.17.0"
+version = "1.18.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2af73ac49756f3f7c01172e34a23e5d0216f6c32333757c2c61feb2bbff5a5ee"
+checksum = "0f48b6d60512a392e34dbf7fd456249fd2de3c83669ab642e021903f4015185b"
 dependencies = [
  "bytes",
  "libc",

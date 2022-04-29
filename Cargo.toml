@@ -7,7 +7,7 @@ edition = "2021"
 [dependencies]
 actix-multipart = "0.4.0"
 actix-web = "4.0.1"
-actix-web-codegen = { path = "../actix-web/actix-web-codegen/" }
+actix-web-codegen = { git = "https://github.com/ModProg/actix-web", branch = "advanced_route_macro" }
 actix-web-lab = "0.15.0"
 anyhow = "1.0.56"
 async-trait = "0.1.53"

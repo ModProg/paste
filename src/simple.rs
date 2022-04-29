@@ -54,7 +54,7 @@ async fn get_bin(
     database: Data<AsyncDatabase>,
     Query(MimeQuery { mime }): Query<MimeQuery>,
 ) -> Result<impl Responder> {
-    if let Some(file) = BonsaiFiles::load_async(&id, database.as_ref().clone())
+    if let Some(file) = BonsaiFiles::load_async(&id, database.as_ref())
         .await
         .map_err(ErrorInternalServerError)?
     {
@@ -79,7 +79,7 @@ async fn get_ext(
     database: Data<AsyncDatabase>,
     syntaxes: Data<SyntaxSet>,
 ) -> Result<impl Responder> {
-    if let Some(file) = BonsaiFiles::load_async(&id, database.as_ref().clone())
+    if let Some(file) = BonsaiFiles::load_async(&id, database.as_ref())
         .await
         .map_err(ErrorInternalServerError)?
     {
@@ -190,7 +190,7 @@ async fn delete_entry(
     Path(Id { id, .. }): Path<Id>,
     database: Data<AsyncDatabase>,
 ) -> Result<impl Responder> {
-    if let Some(file) = BonsaiFiles::load_async(&id, database.as_ref().clone())
+    if let Some(file) = BonsaiFiles::load_async(&id, database.as_ref())
         .await
         .map_err(ErrorInternalServerError)?
     {
@@ -229,15 +229,12 @@ async fn post_form(payload: Multipart, database: Data<AsyncDatabase>) -> Result<
     let file = loop {
         let name = ReadableAlphanumeric.sample_string(&mut rand::thread_rng(), length);
         tries += 1;
-        match BonsaiFiles::build(&name)
-            .create_async(database.clone())
-            .await
-        {
+        match BonsaiFiles::build(&name).create_async(database).await {
             Ok(file) => break file,
             Err(bonsaidb_files::Error::Database(bonsaidb::core::Error::UniqueKeyViolation {
                 ..
             })) if tries > 5 => {
-                let file = BonsaiFiles::load_or_create_async(&name, true, database.clone())
+                let file = BonsaiFiles::load_or_create_async(&name, true, database)
                     .await
                     .map_err(ErrorInternalServerError)?;
                 file.truncate(0, Truncate::RemovingStart)
