@@ -7,10 +7,13 @@ WORKDIR /usr/src/pastemp
 # Caches build dependencies by writing placeholder lib and main files.
 COPY Cargo.toml Cargo.lock ./
 
+RUN cargo build --release --locked
+
 COPY src ./src
 COPY config.toml ./
+COPY templates ./templates
 
-RUN cargo install --path .
+RUN cargo install --path . --offline
 
 FROM debian:buster-slim
 
