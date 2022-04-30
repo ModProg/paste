@@ -1,4 +1,4 @@
-use rand::{prelude::Distribution, Rng, distributions::DistString};
+use rand::{distributions::DistString, prelude::Distribution, Rng};
 
 pub struct ReadableAlphanumeric;
 impl Distribution<u8> for ReadableAlphanumeric {

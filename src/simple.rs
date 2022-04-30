@@ -1,65 +1,116 @@
-use std::str;
+use std::{fmt::Display, str};
 
 use actix_multipart::Multipart;
-use actix_web::error::{ErrorInternalServerError, ErrorNotFound};
-use actix_web::http::header;
-use actix_web::web::Query;
 use actix_web::{
-    dev::HttpServiceFactory, get, http::StatusCode, post, web::Data, HttpResponse, Responder,
-    ResponseError, Result,
+    dev::HttpServiceFactory,
+    error::{ErrorInternalServerError, ErrorNotFound},
+    get,
+    http::{
+        header::{self, ContentDisposition, DispositionParam, DispositionType},
+        StatusCode,
+    },
+    post,
+    web::Data,
+    HttpResponse, Responder, ResponseError, Result,
 };
 use actix_web_codegen::routes;
 use actix_web_lab::extract::Path;
+use askama::Template;
+use askama_actix::TemplateToResponse;
 use bonsaidb::local::AsyncDatabase;
-use bonsaidb_files::FileConfig;
-use bonsaidb_files::{BonsaiFiles, Truncate};
-use futures::future::ready;
-use futures::{StreamExt, TryStreamExt};
-use mime_guess::mime::{APPLICATION_OCTET_STREAM, IMAGE, TEXT_HTML_UTF_8};
-use mime_guess::Mime;
+use bonsaidb_files::{BonsaiFiles, FileConfig, Truncate};
+use futures::{future::ready, StreamExt, TryStreamExt};
+use mime_guess::mime::{APPLICATION_OCTET_STREAM, IMAGE};
 use rand::distributions::DistString;
 use serde::Deserialize;
-use serde_with::{serde_as, DisplayFromStr};
-use syntect::html::ClassedHTMLGenerator;
-use syntect::parsing::SyntaxSet;
-use syntect::util::LinesWithEndings;
+use syntect::{html::ClassedHTMLGenerator, parsing::SyntaxSet, util::LinesWithEndings};
 
 use crate::util::ReadableAlphanumeric;
 
+const RESERVED_URLS: &[&str] = &["raw", "download", "delete"];
+
 pub fn scope() -> impl HttpServiceFactory {
-    (delete_entry, get_bin, get_ext, post_form, index)
+    (
+        delete_entry,
+        raw,
+        download,
+        get_ext,
+        post_form,
+        index,
+        redir_down,
+    )
+}
+
+#[get("/{smth}/{tail:.*}")]
+async fn redir_down() -> impl Responder {
+    HttpResponse::Found()
+        .append_header((header::LOCATION, ".."))
+        .finish()
 }
 
 #[get("/")]
 async fn index() -> impl Responder {
-    HttpResponse::NotFound()
-        .content_type(TEXT_HTML_UTF_8)
-        .body(format!(
-            include_str!("page/index.html"),
-            style = include_str!("page/style.css"),
-        ))
+    #[derive(Template)]
+    #[template(path = "upload.html")]
+    struct Upload;
+
+    Upload
 }
 
-#[serde_as]
-#[derive(Deserialize)]
-struct MimeQuery {
-    #[serde_as(as = "Option<DisplayFromStr>")]
-    #[serde(default)]
-    mime: Option<Mime>,
-}
-
-#[get("{id}.bin")]
-async fn get_bin(
-    Path(id): Path<String>,
+#[routes]
+#[get("download/{id}.{ext}")]
+#[get("download/{id}")]
+async fn download(
+    Path(file_name): Path<FileName>,
     database: Data<AsyncDatabase>,
-    Query(MimeQuery { mime }): Query<MimeQuery>,
+) -> Result<impl Responder> {
+    if let Some(file) = BonsaiFiles::load_async(&file_name.id, database.as_ref())
+        .await
+        .map_err(ErrorInternalServerError)?
+    {
+        Ok(HttpResponse::Ok()
+            .content_type(
+                file_name
+                    .ext
+                    .as_deref()
+                    .and_then(|ext| mime_guess::from_ext(ext).first())
+                    .unwrap_or(APPLICATION_OCTET_STREAM),
+            )
+            .insert_header(ContentDisposition {
+                disposition: DispositionType::Attachment,
+                parameters: vec![DispositionParam::Filename(file_name.to_string())],
+            })
+            .streaming(
+                file.contents()
+                    .await
+                    .map_err(ErrorInternalServerError)?
+                    .map_ok(From::from),
+            ))
+    } else {
+        Err(ErrorNotFound(format!(
+            "Entry {} does not exist",
+            file_name.id
+        )))
+    }
+}
+
+#[routes]
+#[get("raw/{id}.{ext}")]
+#[get("raw/{id}")]
+async fn raw(
+    Path(FileName { id, ext }): Path<FileName>,
+    database: Data<AsyncDatabase>,
 ) -> Result<impl Responder> {
     if let Some(file) = BonsaiFiles::load_async(&id, database.as_ref())
         .await
         .map_err(ErrorInternalServerError)?
     {
         Ok(HttpResponse::Ok()
-            .content_type(mime.unwrap_or(APPLICATION_OCTET_STREAM))
+            .content_type(
+                ext.as_deref()
+                    .and_then(|ext| mime_guess::from_ext(ext).first())
+                    .unwrap_or(APPLICATION_OCTET_STREAM),
+            )
             .streaming(
                 file.contents()
                     .await
@@ -71,123 +122,133 @@ async fn get_bin(
     }
 }
 
+#[derive(Template)]
+#[template(path = "code.html", escape = "none")]
+struct Highlighted {
+    code: String,
+    file_name: FileName,
+}
+
+#[derive(Template)]
+#[template(path = "code.html")]
+struct UnHighlighted {
+    code: String,
+    file_name: FileName,
+}
+
+#[derive(Template)]
+#[template(path = "image.html")]
+struct Image {
+    file_name: FileName,
+}
+
+#[derive(Template)]
+#[template(path = "wrong_type.html")]
+struct WrongType {
+    file_name: FileName,
+}
+
+#[derive(Template)]
+#[template(path = "too_large.html")]
+struct TooLarge {
+    file_name: FileName,
+}
+
+#[derive(Template)]
+#[template(path = "404.html")]
+struct NotFound;
+
 #[routes]
 #[get("{id}.{ext}")]
 #[get("{id}")]
 async fn get_ext(
-    Path(Id { id, ext }): Path<Id>,
+    Path(file_name): Path<FileName>,
     database: Data<AsyncDatabase>,
     syntaxes: Data<SyntaxSet>,
 ) -> Result<impl Responder> {
-    if let Some(file) = BonsaiFiles::load_async(&id, database.as_ref())
-        .await
-        .map_err(ErrorInternalServerError)?
-    {
-        let mime = ext
-            .as_ref()
-            .and_then(|ext| mime_guess::from_ext(ext).first());
-        let syntax = ext
-            .as_ref()
-            .and_then(|ext| syntaxes.find_syntax_by_token(ext));
-        let file = file.contents().await.map_err(ErrorInternalServerError)?;
+    Ok(
+        if let Some(file) = BonsaiFiles::load_async(&file_name.id, database.as_ref())
+            .await
+            .map_err(ErrorInternalServerError)?
+        {
+            let mime = file_name
+                .ext
+                .as_ref()
+                .and_then(|ext| mime_guess::from_ext(ext).first());
+            let syntax = file_name
+                .ext
+                .as_ref()
+                .and_then(|ext| syntaxes.find_syntax_by_token(ext));
+            let file = file.contents().await.map_err(ErrorInternalServerError)?;
 
-        match mime {
-            Some(mime) if mime.type_() == IMAGE => Ok(HttpResponse::Ok()
-                .content_type(TEXT_HTML_UTF_8)
-                .body(format!(
-                    include_str!("page/get.html"),
-                    content = format_args!(
-                        include_str!("page/image.html"),
-                        image_url = format_args!("../{id}.bin"),
-                    ),
-                    style = include_str!("page/style.css"),
-                    delete_url = format_args!("../{id}/delete"),
-                    download_url = format_args!("../{id}.bin"),
-                    download_name =
-                        id.clone() + &ext.map(|ext| format!(".{ext}")).unwrap_or_default(),
-                ))),
-            _ if file.len() < 10_000 => {
-                if let Ok(file) =
-                    String::from_utf8(file.to_vec().await.map_err(ErrorInternalServerError)?)
-                {
-                    let code = if let Some(syntax) = syntax {
-                        let mut html_generator = ClassedHTMLGenerator::new_with_class_style(
-                            syntax,
-                            syntaxes.as_ref(),
-                            syntect::html::ClassStyle::SpacedPrefixed { prefix: "code-" },
-                        );
+            match mime {
+                Some(mime) if mime.type_() == IMAGE => Image { file_name }.to_response(),
+                _ if file.len() < 10_000 => {
+                    if let Ok(file) =
+                        String::from_utf8(file.to_vec().await.map_err(ErrorInternalServerError)?)
+                    {
+                        if let Some(syntax) = syntax {
+                            let mut html_generator = ClassedHTMLGenerator::new_with_class_style(
+                                syntax,
+                                syntaxes.as_ref(),
+                                syntect::html::ClassStyle::SpacedPrefixed { prefix: "code-" },
+                            );
 
-                        for line in LinesWithEndings::from(&file) {
-                            html_generator.parse_html_for_line_which_includes_newline(line);
+                            for line in LinesWithEndings::from(&file) {
+                                html_generator.parse_html_for_line_which_includes_newline(line);
+                            }
+                            Highlighted {
+                                code: html_generator.finalize(),
+                                file_name,
+                            }
+                            .to_response()
+                        } else {
+                            UnHighlighted {
+                                code: file,
+                                file_name,
+                            }
+                            .to_response()
                         }
-                        html_generator.finalize()
                     } else {
-                        file
-                    };
-                    Ok(HttpResponse::Ok()
-                        .content_type(TEXT_HTML_UTF_8)
-                        .body(format!(
-                            include_str!("page/get.html"),
-                            content = format_args!(
-                                include_str!("page/code.html"),
-                                code = code,
-                                one_half_light = include_str!("page/one_half_light.css"),
-                                one_half_dark = include_str!("page/one_half_dark.css")
-                            ),
-                            style = include_str!("page/style.css"),
-                            delete_url = &format!("../{id}/delete"),
-                            download_url = &format!("../{id}.bin"),
-                            download_name =
-                                id.clone() + &ext.map(|ext| format!(".{ext}")).unwrap_or_default(),
-                        )))
-                } else {
-                    Ok(HttpResponse::Ok()
-                        .content_type(TEXT_HTML_UTF_8)
-                        .body(format!(
-                            include_str!("page/get.html"),
-                            content = include_str!("page/wrong_type.html"),
-                            style = include_str!("page/style.css"),
-                            delete_url = &format!("../{id}/delete"),
-                            download_url = &format!("../{id}.bin"),
-                            download_name =
-                                id.clone() + &ext.map(|ext| format!(".{ext}")).unwrap_or_default(),
-                        )))
+                        WrongType { file_name }.to_response()
+                    }
                 }
+                _ => TooLarge { file_name }.to_response(),
             }
-            _ => Ok(HttpResponse::Ok()
-                .content_type(TEXT_HTML_UTF_8)
-                .body(format!(
-                    include_str!("page/get.html"),
-                    content = include_str!("page/too_large.html"),
-                    style = include_str!("page/style.css"),
-                    delete_url = &format!("../{id}/delete"),
-                    download_url = &format!("../{id}.bin"),
-                    download_name =
-                        id.clone() + &ext.map(|ext| format!(".{ext}")).unwrap_or_default(),
-                ))),
-        }
-    } else {
-        Ok(HttpResponse::NotFound()
-            .content_type(TEXT_HTML_UTF_8)
-            .body(format!(
-                include_str!("page/404.html"),
-                style = include_str!("page/style.css"),
-            )))
-    }
+            .customize()
+        } else {
+            NotFound
+                .to_response()
+                .customize()
+                .with_status(StatusCode::NOT_FOUND)
+        },
+    )
 }
 
 #[derive(Deserialize)]
-struct Id {
+struct FileName {
     id: String,
     ext: Option<String>,
+}
+
+impl Display for FileName {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let Self { id, ext } = self;
+        write!(f, "{id}")?;
+        if let Some(ext) = ext {
+            write!(f, ".{ext}")?;
+        }
+        Ok(())
+    }
 }
 
 #[routes]
 #[delete("{id}.{ext}")]
 #[delete("{id}")]
-#[get("{id}/delete")]
+#[get("delete/{id}")]
+#[get("delete/{id}.{ext}")]
 async fn delete_entry(
-    Path(Id { id, .. }): Path<Id>,
+    Path(FileName { id, .. }): Path<FileName>,
     database: Data<AsyncDatabase>,
 ) -> Result<impl Responder> {
     if let Some(file) = BonsaiFiles::load_async(&id, database.as_ref())
@@ -227,7 +288,12 @@ async fn post_form(payload: Multipart, database: Data<AsyncDatabase>) -> Result<
     // TODO auto increase
     let length = 4;
     let file = loop {
-        let name = ReadableAlphanumeric.sample_string(&mut rand::thread_rng(), length);
+        let name = loop {
+            let id = ReadableAlphanumeric.sample_string(&mut rand::thread_rng(), length);
+            if !RESERVED_URLS.contains(&id.as_str()) {
+                break id;
+            }
+        };
         tries += 1;
         match BonsaiFiles::build(&name).create_async(database).await {
             Ok(file) => break file,

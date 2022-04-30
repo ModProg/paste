@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset='utf-8'>
+        <meta http-equiv='X-UA-Compatible' content='IE=edge'>
+        <title>Paste</title>
+        <meta name='viewport' content='width=device-width, initial-scale=1'>
+        <style>{% include "style.css" %}</style>
+        <style>
+            @media (prefers-color-scheme: light) {
+                {% include "one_half_light.css" %}
+            }
+            @media (prefers-color-scheme: dark) {
+                {% include "one_half_dark.css" %}
+            }
+        </style>
+    </head>
+
+    <body>
+        {% block content %}{% endblock %}
+    </body>
+</html>

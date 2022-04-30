@@ -1,4 +1,3 @@
-use crate::config::Config;
 use std::{env, path::PathBuf};
 
 use actix_web::{web::Data, App, HttpServer};
@@ -14,6 +13,8 @@ use bonsaidb_files::{BonsaiFiles, FilesSchema};
 use log::{error, info};
 use serde::{Deserialize, Serialize};
 use syntect::parsing::SyntaxSet;
+
+use crate::config::Config;
 
 mod config;
 mod simple;

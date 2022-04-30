@@ -1,10 +1,8 @@
 use std::path::Path;
 
-use anyhow::Context;
-use anyhow::Result;
-use figment::providers::Format;
+use anyhow::{Context, Result};
 use figment::{
-    providers::{Env, Toml},
+    providers::{Env, Format, Toml},
     Figment,
 };
 use serde::Deserialize;
