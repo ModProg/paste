@@ -14,7 +14,6 @@ async-trait = "0.1.53"
 bonsaidb = { git = "https://github.com/khonsulabs/bonsaidb", features = ["local-full"] }
 bonsaidb-files = { git = "https://github.com/khonsulabs/bonsaidb", features = ["async"] }
 derive_more = "0.99.17"
-
 env_logger = "0.9.0"
 futures = "0.3.21"
 futures-util = "0.3.21"

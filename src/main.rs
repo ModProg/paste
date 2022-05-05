@@ -2,33 +2,20 @@ use std::{env, path::PathBuf};
 
 use actix_web::{web::Data, App, HttpServer};
 use anyhow::Result;
-use bonsaidb::{
-    core::schema::{self, Collection},
-    local::{
-        config::{Builder, StorageConfiguration},
-        AsyncDatabase,
-    },
-};
-use bonsaidb_files::{BonsaiFiles, FilesSchema};
+use bonsaidb::local::config::StorageConfiguration;
 use log::{error, info};
-use serde::{Deserialize, Serialize};
 use syntect::parsing::SyntaxSet;
 
-use crate::config::Config;
+use config::Config;
+use db::DB;
 
 mod config;
+mod db;
 mod simple;
 mod util;
 
-#[derive(Debug, schema::Schema)]
-#[schema(name = "paste", include=[FilesSchema<BonsaiFiles>])]
-struct Schema;
 
-#[derive(Deserialize, Serialize, Collection, Debug, Clone)]
-#[collection(name = "entries")]
-struct ActiveEntries {
-    name: String,
-}
+pub const RESERVED_URLS: &[&str] = &["raw", "download", "delete"];
 
 #[tokio::main]
 async fn main() -> Result<()> {
@@ -48,8 +35,7 @@ async fn main() -> Result<()> {
 
     let config = Config::load(&config_path)?;
 
-    let database =
-        Data::new(AsyncDatabase::open::<Schema>(StorageConfiguration::new("data.bonsaidb")).await?);
+    let database = Data::new(DB::new().await?);
     let config = Data::new(config);
     let syntaxes = Data::new(SyntaxSet::load_defaults_newlines());
 

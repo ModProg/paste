@@ -3,7 +3,7 @@ use std::{fmt::Display, str};
 use actix_multipart::Multipart;
 use actix_web::{
     dev::HttpServiceFactory,
-    error::{ErrorInternalServerError, ErrorNotFound},
+    error::ErrorInternalServerError,
     get,
     http::{
         header::{self, ContentDisposition, DispositionParam, DispositionType},
@@ -17,17 +17,16 @@ use actix_web_codegen::routes;
 use actix_web_lab::extract::Path;
 use askama::Template;
 use askama_actix::TemplateToResponse;
-use bonsaidb::local::AsyncDatabase;
-use bonsaidb_files::{BonsaiFiles, FileConfig, Truncate};
 use futures::{future::ready, StreamExt, TryStreamExt};
 use mime_guess::mime::{APPLICATION_OCTET_STREAM, IMAGE};
-use rand::distributions::DistString;
 use serde::Deserialize;
 use syntect::{html::ClassedHTMLGenerator, parsing::SyntaxSet, util::LinesWithEndings};
 
-use crate::util::ReadableAlphanumeric;
+use crate::db::DB;
 
-const RESERVED_URLS: &[&str] = &["raw", "download", "delete"];
+#[derive(Template)]
+#[template(path = "404.html")]
+struct NotFound;
 
 pub fn scope() -> impl HttpServiceFactory {
     (
@@ -60,11 +59,9 @@ async fn index() -> impl Responder {
 #[routes]
 #[get("download/{id}.{ext}")]
 #[get("download/{id}")]
-async fn download(
-    Path(file_name): Path<FileName>,
-    database: Data<AsyncDatabase>,
-) -> Result<impl Responder> {
-    if let Some(file) = BonsaiFiles::load_async(&file_name.id, database.as_ref())
+async fn download(Path(file_name): Path<FileName>, db: Data<DB>) -> Result<impl Responder> {
+    if let Some(file) = db
+        .load_file(&file_name.id)
         .await
         .map_err(ErrorInternalServerError)?
     {
@@ -85,12 +82,13 @@ async fn download(
                     .await
                     .map_err(ErrorInternalServerError)?
                     .map_ok(From::from),
-            ))
+            )
+            .customize())
     } else {
-        Err(ErrorNotFound(format!(
-            "Entry {} does not exist",
-            file_name.id
-        )))
+        Ok(NotFound
+            .to_response()
+            .customize()
+            .with_status(StatusCode::NOT_FOUND))
     }
 }
 
@@ -99,9 +97,10 @@ async fn download(
 #[get("raw/{id}")]
 async fn raw(
     Path(FileName { id, ext }): Path<FileName>,
-    database: Data<AsyncDatabase>,
+    database: Data<DB>,
 ) -> Result<impl Responder> {
-    if let Some(file) = BonsaiFiles::load_async(&id, database.as_ref())
+    if let Some(file) = database
+        .load_file(&id)
         .await
         .map_err(ErrorInternalServerError)?
     {
@@ -116,36 +115,14 @@ async fn raw(
                     .await
                     .map_err(ErrorInternalServerError)?
                     .map_ok(From::from),
-            ))
+            )
+            .customize())
     } else {
-        Err(ErrorNotFound(format!("Entry {id} does not exist")))
+        Ok(NotFound
+            .to_response()
+            .customize()
+            .with_status(StatusCode::NOT_FOUND))
     }
-}
-
-#[derive(Template)]
-#[template(path = "code.html", escape = "none")]
-struct Highlighted {
-    code: String,
-    file_name: FileName,
-}
-
-#[derive(Template)]
-#[template(path = "code.html")]
-struct UnHighlighted {
-    code: String,
-    file_name: FileName,
-}
-
-#[derive(Template)]
-#[template(path = "image.html")]
-struct Image {
-    file_name: FileName,
-}
-
-#[derive(Template)]
-#[template(path = "wrong_type.html")]
-struct WrongType {
-    file_name: FileName,
 }
 
 #[derive(Template)]
@@ -154,20 +131,17 @@ struct TooLarge {
     file_name: FileName,
 }
 
-#[derive(Template)]
-#[template(path = "404.html")]
-struct NotFound;
-
 #[routes]
 #[get("{id}.{ext}")]
 #[get("{id}")]
 async fn get_ext(
     Path(file_name): Path<FileName>,
-    database: Data<AsyncDatabase>,
+    database: Data<DB>,
     syntaxes: Data<SyntaxSet>,
 ) -> Result<impl Responder> {
     Ok(
-        if let Some(file) = BonsaiFiles::load_async(&file_name.id, database.as_ref())
+        if let Some(file) = database
+            .load_file(&file_name.id)
             .await
             .map_err(ErrorInternalServerError)?
         {
@@ -182,7 +156,15 @@ async fn get_ext(
             let file = file.contents().await.map_err(ErrorInternalServerError)?;
 
             match mime {
-                Some(mime) if mime.type_() == IMAGE => Image { file_name }.to_response(),
+                Some(mime) if mime.type_() == IMAGE => {
+                    #[derive(Template)]
+                    #[template(path = "image.html")]
+                    struct Image {
+                        file_name: FileName,
+                    }
+
+                    Image { file_name }.to_response()
+                }
                 _ if file.len() < 10_000 => {
                     if let Ok(file) =
                         String::from_utf8(file.to_vec().await.map_err(ErrorInternalServerError)?)
@@ -197,12 +179,26 @@ async fn get_ext(
                             for line in LinesWithEndings::from(&file) {
                                 html_generator.parse_html_for_line_which_includes_newline(line);
                             }
+                            #[derive(Template)]
+                            #[template(path = "code.html", escape = "none")]
+                            struct Highlighted {
+                                code: String,
+                                file_name: FileName,
+                            }
+
                             Highlighted {
                                 code: html_generator.finalize(),
                                 file_name,
                             }
                             .to_response()
                         } else {
+                            #[derive(Template)]
+                            #[template(path = "code.html")]
+                            struct UnHighlighted {
+                                code: String,
+                                file_name: FileName,
+                            }
+
                             UnHighlighted {
                                 code: file,
                                 file_name,
@@ -210,6 +206,11 @@ async fn get_ext(
                             .to_response()
                         }
                     } else {
+                        #[derive(Template)]
+                        #[template(path = "wrong_type.html")]
+                        struct WrongType {
+                            file_name: FileName,
+                        }
                         WrongType { file_name }.to_response()
                     }
                 }
@@ -249,9 +250,11 @@ impl Display for FileName {
 #[get("delete/{id}.{ext}")]
 async fn delete_entry(
     Path(FileName { id, .. }): Path<FileName>,
-    database: Data<AsyncDatabase>,
+    database: Data<DB>,
 ) -> Result<impl Responder> {
-    if let Some(file) = BonsaiFiles::load_async(&id, database.as_ref())
+    // TODO mark for deletion or delete
+    if let Some(file) = database
+        .load_file(&id)
         .await
         .map_err(ErrorInternalServerError)?
     {
@@ -279,41 +282,14 @@ impl ResponseError for UploadError {
 }
 
 #[post("/")]
-async fn post_form(payload: Multipart, database: Data<AsyncDatabase>) -> Result<impl Responder> {
-    let database = database.as_ref();
+async fn post_form(payload: Multipart, database: Data<DB>) -> Result<impl Responder> {
     let mut multipart = payload;
     let mut extension = None;
 
-    let mut tries = 0;
-    // TODO auto increase
-    let length = 4;
-    let file = loop {
-        let name = loop {
-            let id = ReadableAlphanumeric.sample_string(&mut rand::thread_rng(), length);
-            if !RESERVED_URLS.contains(&id.as_str()) {
-                break id;
-            }
-        };
-        tries += 1;
-        match BonsaiFiles::build(&name).create_async(database).await {
-            Ok(file) => break file,
-            Err(bonsaidb_files::Error::Database(bonsaidb::core::Error::UniqueKeyViolation {
-                ..
-            })) if tries > 5 => {
-                let file = BonsaiFiles::load_or_create_async(&name, true, database)
-                    .await
-                    .map_err(ErrorInternalServerError)?;
-                file.truncate(0, Truncate::RemovingStart)
-                    .await
-                    .map_err(ErrorInternalServerError)?;
-                break file;
-            }
-            Err(bonsaidb_files::Error::Database(bonsaidb::core::Error::UniqueKeyViolation {
-                ..
-            })) => continue,
-            Err(err) => return Err(ErrorInternalServerError(err)),
-        }
-    };
+    let file = database
+        .new_file()
+        .await
+        .map_err(ErrorInternalServerError)?;
 
     while let Some(mut field) = multipart.try_next().await? {
         const FILE_LIMIT: usize = 10_000_000;

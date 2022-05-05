@@ -6,11 +6,11 @@ use figment::{
     Figment,
 };
 use serde::Deserialize;
-use url::Url;
 
 #[derive(Deserialize)]
 pub struct Config {
-    pub base_url: Url,
+    pub max_age: f64,
+    pub time_to_delete: f64,
 }
 
 impl Config {

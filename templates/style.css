@@ -121,20 +121,21 @@ textarea, select, input[type="text"] {
 pre {
   padding-inline: var(--padding-inline);
   padding-block: var(--padding-block);
-  box-shadow: 1px 1px 2px #40404040;
   border-radius: min(var(--radius), calc(100vw - min(800px, calc(100% - 40px)) - var(--padding-inline) * 2));
-  width: fit-content;
+  min-width: fit-content;
+  width: min(800px, calc(100% - 40px));
   margin: 0;
   margin-inline: auto;
   margin-left: calc(100vw - width);
   overflow-x: auto;
+  background-color: var(--bg-code);
 }
 
 scroll-box {
   overflow-x: auto;
-  padding-bottom: 2px;
   width: 100vw;
   margin-left: calc((100vw - 100%) / 2 * -1);
+  scrollbar-color: var(--fg-scrollbar) var(--bg-code);
 }
 
 input[type="file"]{
@@ -200,22 +201,25 @@ bottom-border {
 }
 
 :root{
-  --bg: #E5E5E5;
+  --bg: #ffffff;
   --text: #171717;
   --border: #999595;
   --text-delete: #991B1B;
-  --radius: .5em;
-  --padding-inline: 1em;
-  --padding-block: 0.78ex;
-  scrollbar-color: #fafafa var(--bg);
+  --radius: 6px;
+  --padding-inline: 16px;
+  --padding-block: var(--padding-inline);
+  --bg-code: #f6f8fa;
+  --fg-scrollbar: #cecece;
+  scrollbar-color: var(--fg-scrollbar) var(--bg);
 }
 @media (prefers-color-scheme: dark) {
   :root{
-    --bg: #171717;
+    --bg: #0d1117;
     --text: #E5E5E5;
     --text-highlight: #A3A3A3;
     --border: #6f6b6b;
-  scrollbar-color: #282c34 var(--bg);
+    --bg-code: #161b22;
+    --fg-scrollbar: #505a5e;
   }
   .btn.outlined:hover {
     color: white;

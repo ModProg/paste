@@ -2,22 +2,22 @@
 
 ## Simple API
 ### Retrieve Data
-The server will based on the user agent decide whether to send the data as a raw file. 
+The server decides based on the UserAgent whether to send the data as a raw file or embeded in a website. To differentiated browsers from non browsers it uses the `Mozilla` all modern browsers (even IE) send.
 
-As for some reason all browsers send `Mozilla` this is going to be used for now.
+For a browser this will return a HTML with the file embeded and displayed correctly with added controls for e.g. deleting the entry. For all other requests (mainly tools like curl) the file will be returned as raw data.
 
-For a browser this will return a HTML with the file embeded with added controlls for e.g. delete the entry. For all other requests (mainly things like curl) the file will be returned as raw data.
-
-- get("/:id")                   ->  return entry as text
-- get("/:id.bin")               ->  return entry as binary
-- get("/:id.bin?mime={mime}")   ->  return entry as binary, set mime type to `mime`
-- get("/:id.:ext")              ->  return entry as the expect type for the extension
+- get("/:id")      ->  return entry as text
+- get("/:id.:ext") ->  return entry as the expect type for the extension
+    - for code files this will return highlighted code (as long as it is supported by [syntect](https://github.com/trishume/syntect))
+    - for image files it will embed the file in an `<img>` tag to display.
 
 ### Delete entry
-There is the semantically correct way of deleting data using delete requests, but to make the website work without JS because there are people like that, it also supports using ?delete with a get request.
+There is the semantically correct way of deleting data using delete requests, but to make the website work without JS, it also supports using a get endpoint for deletion. The extension is optional and will be ignored.
 
-- delete("/:id")
-- get("/:id/delete")
+Deleting a file can either be done by the original uploader, identified via a cookie or a random passphrase imidiatly, as well as anyone viewing it with a 30 minute delay.
+
+- delete("/:id<.:ext>")
+- get("delete/:id<.:ext>")
 
 ### Add entry
 There are multiple ways of to add entries.
