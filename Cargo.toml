@@ -8,25 +8,24 @@ edition = "2021"
 actix-multipart = "0.4.0"
 actix-web = "4.0.1"
 actix-web-codegen = { git = "https://github.com/ModProg/actix-web", branch = "advanced_route_macro" }
-actix-web-lab = "0.15.0"
-anyhow = "1.0.56"
+actix-web-lab = "0.16.1"
+anyhow = "1.0.57"
 async-trait = "0.1.53"
 bonsaidb = { git = "https://github.com/khonsulabs/bonsaidb", features = ["local-full"] }
 bonsaidb-files = { git = "https://github.com/khonsulabs/bonsaidb", features = ["async"] }
 derive_more = "0.99.17"
-
 env_logger = "0.9.0"
 futures = "0.3.21"
 futures-util = "0.3.21"
-log = "0.4.16"
+log = "0.4.17"
 rand = "0.8.5"
-serde = "1.0.136"
-thiserror = "1.0.30"
-tokio = { version = "1.17.0", features = ["full"] }
+serde = "1.0.137"
+thiserror = "1.0.31"
+tokio = { version = "1.18.1", features = ["full"] }
 url = { version = "2.2.2", features = ["serde"] }
 mime_guess = "2.0.4"
 serde_with = "1.13.0"
-syntect = "4.6.0"
+syntect = "5.0.0"
 askama = { version = "0.11.1", features = ["with-actix-web"] }
 askama_actix = "0.13.0"
 

@@ -1,22 +1,38 @@
 <!DOCTYPE html>
 <html>
-    <head>
-        <meta charset='utf-8'>
-        <meta http-equiv='X-UA-Compatible' content='IE=edge'>
-        <title>Paste</title>
-        <meta name='viewport' content='width=device-width, initial-scale=1'>
-        <style>{% include "style.css" %}</style>
-        <style>
-            @media (prefers-color-scheme: light) {
-                {% include "one_half_light.css" %}
-            }
-            @media (prefers-color-scheme: dark) {
-                {% include "one_half_dark.css" %}
-            }
-        </style>
-    </head>
 
-    <body>
+<head>
+    <meta charset='utf-8'>
+    <meta http-equiv='X-UA-Compatible' content='IE=edge'>
+    <title>Paste</title>
+    <meta name='viewport' content='width=device-width, initial-scale=1'>
+    <style>{% include "style.css" %}</style>
+    <style>
+        @media (prefers-color-scheme: light) {
+            {% include "github_light.css" %}
+        }
+        @media (prefers-color-scheme: dark) {
+            {% include "github_dark.css" %}
+        }
+    </style>
+</head>
+
+<body>
+    <main>
         {% block content %}{% endblock %}
-    </body>
+    </main>
+    <footer>
+        <column>
+            <a href="https://github.com/ModProg/paste" class="btn">
+                <svg width="24" height="24" version="1.1" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                    <path fill="currentColor" fill-rule="evenodd" stroke-width="1.77962"
+                        d="M 11.999261,3 C 7.029905,3 3,7.1313842 3,12.22802 c 0,4.076934 2.5785782,7.535267 6.1549577,8.75552 0.4503153,0.08497 0.6144003,-0.199967 0.6144003,-0.444692 0,-0.219217 -0.0078,-0.799277 -0.01253,-1.569154 -2.5034277,0.557417 -3.0316534,-1.237202 -3.0316534,-1.237202 -0.409418,-1.066128 -0.9995262,-1.349928 -0.9995262,-1.349928 -0.8171261,-0.572139 0.061865,-0.560821 0.061865,-0.560821 0.9033762,0.06515 1.3785017,0.951152 1.3785017,0.951152 0.8028011,1.410003 2.1066777,1.002677 2.6194529,0.766426 0.08176,-0.595935 0.314385,-1.002677 0.571298,-1.233228 -1.9984518,-0.232822 -4.0996545,-1.024802 -4.0996545,-4.560759 0,-1.007177 0.350843,-1.8313538 0.9265512,-2.47613 -0.092873,-0.2333856 -0.4016631,-1.1720276 0.088336,-2.4420804 0,0 0.7553259,-0.2481231 2.4747783,0.946052 0.717721,-0.2050579 1.487927,-0.3070281 2.253153,-0.3110106 0.764702,0.00401 1.534352,0.1059302 2.253152,0.3110106 1.718253,-1.1941526 2.472529,-0.946052 2.472529,-0.946052 0.49119,1.2700528 0.182318,2.2087549 0.09005,2.4420804 0.576826,0.6446562 0.924901,1.468877 0.924901,2.47613 0,3.545107 -2.104503,4.325184 -4.109104,4.553335 0.322665,0.284947 0.61053,0.848027 0.61053,1.708579 0,1.233827 -0.01097,2.229155 -0.01097,2.531705 0,0.246984 0.162427,0.534197 0.618818,0.444129 C 18.423596,19.760054 21,16.303972 21,12.228312 21,7.1317518 16.96987,3.0002924 11.999239,3.0002924"/>
+                </svg>
+                ModProg/paste
+            </a>
+        </column>
+        {% block footer %}{% endblock %}
+    </footer>
+</body>
+
 </html>

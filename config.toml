@@ -1,1 +1,3 @@
+max_age = 172800
+time_to_delete = 1800
 base_url = "http://localhost:8000"
