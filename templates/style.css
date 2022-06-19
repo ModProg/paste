@@ -13,7 +13,7 @@ html {
 body {
   max-width: min(800px, calc(100% - 40px));
   margin-inline: auto;
-  min-height: min(100vh, 800px);
+  min-height: 100vh;
   box-sizing: border-box;
   margin-block: 0;
   padding-top: 2em;
@@ -28,7 +28,7 @@ body {
 * {
   background: none;
   border:none;
-  color:inherit;
+  color: var(--color);
   text-decoration-line: inherit;
   font-size: 20px;
   margin-block: 0;
@@ -220,6 +220,7 @@ bottom-border {
 
 main {
   flex-grow: 1;
+  max-height: 600px;
   gap: inherit;
   display: flex;
   flex-direction: column;
@@ -228,6 +229,7 @@ main {
 footer {
   padding-top: 40px;
   display: flex;
+  margin-top: auto;
 }
 
 column {
@@ -276,6 +278,7 @@ backdrop {
 #delete-trigger:checked ~ #delete-dialog {
   display: block;
 }
+
 
 
 :root{

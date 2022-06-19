@@ -1,7 +1,8 @@
-use std::{fmt::Display, str};
+use std::{borrow::Borrow, fmt::Display, str};
 
 use actix_multipart::Multipart;
 use actix_web::{
+    cookie::Cookie,
     dev::HttpServiceFactory,
     error::ErrorInternalServerError,
     get,
@@ -17,12 +18,20 @@ use actix_web_codegen::routes;
 use actix_web_lab::extract::Path;
 use askama::Template;
 use askama_actix::TemplateToResponse;
+use chrono::{Duration, Utc};
 use futures::{future::ready, StreamExt, TryStreamExt};
 use mime_guess::mime::{APPLICATION_OCTET_STREAM, IMAGE};
+use rand::distributions::{Alphanumeric, DistString};
 use serde::Deserialize;
 use syntect::{html::ClassedHTMLGenerator, parsing::SyntaxSet, util::LinesWithEndings};
 
-use crate::db::DB;
+use crate::{
+    config::Config,
+    db::{DateTime, DB},
+    util::{AddCookieJar, Cookies},
+};
+
+const OWNER_COOKIE: &str = "OWNER";
 
 #[derive(Template)]
 #[template(path = "404.html")]
@@ -132,6 +141,7 @@ async fn get_ext(
     Path(file_name): Path<FileName>,
     database: Data<DB>,
     syntaxes: Data<SyntaxSet>,
+    Cookies(cookies): Cookies,
 ) -> Result<impl Responder> {
     Ok(
         if let Some(file) = database
@@ -139,6 +149,13 @@ async fn get_ext(
             .await
             .map_err(ErrorInternalServerError)?
         {
+            let metadata = file
+                .metadata()
+                .ok_or_else(|| ErrorInternalServerError("all files have metadata"))?;
+            let delete_at = metadata.delete_at;
+            let owner = cookies
+                .iter()
+                .any(|cookie| cookie.name_value() == (OWNER_COOKIE, &metadata.owner));
             let mime = file_name
                 .ext
                 .as_ref()
@@ -155,9 +172,16 @@ async fn get_ext(
                     #[template(path = "image.html")]
                     struct Image {
                         file_name: FileName,
+                        delete_at: Option<DateTime>,
+                        owner: bool,
                     }
 
-                    Image { file_name }.to_response()
+                    Image {
+                        file_name,
+                        delete_at,
+                        owner,
+                    }
+                    .to_response()
                 }
                 _ if file.len() < 10_000 => {
                     if let Ok(file) =
@@ -168,6 +192,8 @@ async fn get_ext(
                         struct UnHighlighted {
                             code: String,
                             file_name: FileName,
+                            delete_at: Option<DateTime>,
+                            owner: bool,
                         }
 
                         if let Some(syntax) = syntax {
@@ -185,6 +211,8 @@ async fn get_ext(
                                     return Ok(UnHighlighted {
                                         code: file,
                                         file_name,
+                                        delete_at,
+                                        owner,
                                     }
                                     .to_response()
                                     .customize());
@@ -196,17 +224,23 @@ async fn get_ext(
                             struct Highlighted {
                                 code: String,
                                 file_name: FileName,
+                                delete_at: Option<DateTime>,
+                                owner: bool,
                             }
 
                             Highlighted {
                                 code: html_generator.finalize(),
                                 file_name,
+                                delete_at,
+                                owner,
                             }
                             .to_response()
                         } else {
                             UnHighlighted {
                                 code: file,
                                 file_name,
+                                delete_at,
+                                owner,
                             }
                             .to_response()
                         }
@@ -215,9 +249,16 @@ async fn get_ext(
                         #[template(path = "wrong_type.html")]
                         struct WrongType {
                             file_name: FileName,
+                            delete_at: Option<DateTime>,
+                            owner: bool,
                         }
 
-                        WrongType { file_name }.to_response()
+                        WrongType {
+                            file_name,
+                            delete_at,
+                            owner,
+                        }
+                        .to_response()
                     }
                 }
                 _ => {
@@ -225,9 +266,16 @@ async fn get_ext(
                     #[template(path = "too_large.html")]
                     struct TooLarge {
                         file_name: FileName,
+                        delete_at: Option<DateTime>,
+                        owner: bool,
                     }
 
-                    TooLarge { file_name }.to_response()
+                    TooLarge {
+                        file_name,
+                        delete_at,
+                        owner,
+                    }
+                    .to_response()
                 }
             }
             .customize()
@@ -264,16 +312,31 @@ impl Display for FileName {
 #[get("delete/{id}.{ext}")]
 async fn delete_entry(
     Path(FileName { id, .. }): Path<FileName>,
+    config: Data<Config>,
     database: Data<DB>,
+    Cookies(cookies): Cookies,
 ) -> Result<impl Responder> {
-    // TODO mark for deletion or delete
-    if let Some(file) = database
-        .load_file(&id)
+    let owner = database
+        .file_owner(&id)
         .await
-        .map_err(ErrorInternalServerError)?
-    {
-        file.delete().await.map_err(ErrorInternalServerError)?;
+        .map_err(ErrorInternalServerError)?;
+
+    if matches!(owner, Some(owner) if
+        cookies
+            .iter()
+            .any(|cookie| cookie.name_value() == (OWNER_COOKIE, &owner))
+    ) {
+        database
+            .delete_at(&id, Utc::now())
+            .await
+            .map_err(ErrorInternalServerError)?
+    } else {
+        database
+            .delete_at(&id, Utc::now() + config.time_to_delete)
+            .await
+            .map_err(ErrorInternalServerError)?;
     }
+
     Ok(HttpResponse::Found()
         .append_header((header::LOCATION, "/"))
         .finish())
@@ -296,12 +359,25 @@ impl ResponseError for UploadError {
 }
 
 #[post("/")]
-async fn post_form(payload: Multipart, database: Data<DB>) -> Result<impl Responder> {
+async fn post_form(
+    payload: Multipart,
+    database: Data<DB>,
+    Cookies(mut cookies): Cookies,
+    config: Data<Config>,
+) -> Result<impl Responder> {
     let mut multipart = payload;
     let mut extension = None;
 
+    let owner = if let Some(owner) = cookies.get(OWNER_COOKIE) {
+        owner.value().to_owned()
+    } else {
+        let owner = Alphanumeric.sample_string(&mut rand::thread_rng(), 20);
+        cookies.add(Cookie::new(OWNER_COOKIE, owner.clone()));
+        owner
+    };
+
     let file = database
-        .new_file()
+        .new_file(owner, Some(config.max_age))
         .await
         .map_err(ErrorInternalServerError)?;
 
@@ -376,5 +452,6 @@ async fn post_form(payload: Multipart, database: Data<DB>) -> Result<impl Respon
             header::LOCATION,
             file.name().to_string() + &extension.map(|e| format!(".{e}")).unwrap_or_default(),
         ))
+        .cookie_delta(&cookies)
         .finish())
 }

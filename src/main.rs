@@ -26,7 +26,7 @@ async fn main() -> Result<()> {
         .unwrap_or_else(|| PathBuf::from("config.toml"));
 
     info!(
-        "Loading config from `{}`, this can be changed by the env variable `FRONTEND_CONFIG`",
+        "Loading config from `{}`, this can be changed by the env variable `PASTEMP_CONFIG`",
         config_path.display()
     );
     if !config_path.is_file() {

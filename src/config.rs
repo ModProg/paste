@@ -1,16 +1,21 @@
 use std::path::Path;
 
 use anyhow::{Context, Result};
+use chrono::Duration;
 use figment::{
     providers::{Env, Format, Toml},
     Figment,
 };
 use serde::Deserialize;
+use serde_with::{serde_as, DurationSeconds};
 
+#[serde_as]
 #[derive(Deserialize)]
 pub struct Config {
-    pub max_age: f64,
-    pub time_to_delete: f64,
+    #[serde_as(as = "DurationSeconds<i64>")]
+    pub max_age: Duration,
+    #[serde_as(as = "DurationSeconds<i64>")]
+    pub time_to_delete: Duration,
 }
 
 impl Config {
