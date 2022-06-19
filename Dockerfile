@@ -10,6 +10,7 @@ COPY Cargo.toml Cargo.lock ./
 RUN cargo build --release --locked
 
 COPY src ./src
+COPY grammars ./grammars
 COPY config.toml ./
 COPY templates ./templates
 
