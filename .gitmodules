@@ -1,0 +1,3 @@
+[submodule "grammars/sublime_toml_highlighting"]
+	path = grammars/sublime_toml_highlighting
+	url = https://github.com/jasonwilliams/sublime_toml_highlighting

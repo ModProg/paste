@@ -3,8 +3,9 @@ use std::{env, path::PathBuf};
 use actix_web::{web::Data, App, HttpServer};
 use anyhow::Result;
 use bonsaidb::local::config::StorageConfiguration;
+use include_dir::include_dir;
 use log::{error, info};
-use syntect::parsing::SyntaxSet;
+use syntect::parsing::{SyntaxDefinition, SyntaxSet};
 
 use config::Config;
 use db::DB;
@@ -13,7 +14,6 @@ mod config;
 mod db;
 mod simple;
 mod util;
-
 
 pub const RESERVED_URLS: &[&str] = &["raw", "download", "delete"];
 
@@ -37,7 +37,24 @@ async fn main() -> Result<()> {
 
     let database = Data::new(DB::new().await?);
     let config = Data::new(config);
-    let syntaxes = Data::new(SyntaxSet::load_defaults_newlines());
+    let mut syntaxes = SyntaxSet::load_defaults_newlines().into_builder();
+    for file in include_dir!("$CARGO_MANIFEST_DIR/grammars")
+        .find("**/*.sublime-syntax")
+        .expect("correct glob")
+    {
+        syntaxes.add(
+            SyntaxDefinition::load_from_str(
+                file.as_file()
+                    .expect("matches only files")
+                    .contents_utf8()
+                    .expect("files contain valid utf8"),
+                true,
+                None,
+            )
+            .expect("valid syntax file"),
+        );
+    }
+    let syntaxes = Data::new(syntaxes.build());
 
     HttpServer::new(move || {
         App::new()
