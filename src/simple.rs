@@ -149,9 +149,7 @@ async fn get_ext(
             .await
             .map_err(ErrorInternalServerError)?
         {
-            let metadata = file
-                .metadata()
-                .ok_or_else(|| ErrorInternalServerError("all files have metadata"))?;
+            let metadata = file.metadata();
             let delete_at = metadata.delete_at;
             let owner = cookies
                 .iter()

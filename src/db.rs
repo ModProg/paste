@@ -53,12 +53,8 @@ impl DB {
 
     pub async fn delete_at(&self, name: &str, delete_at: DateTime) -> Result {
         if let Some(mut file) = Files::load_async(name, &self.0).await? {
-            let metadata = file.metadata().expect("all files have metadata").clone();
-            file.update_metadata(Metadata {
-                delete_at: Some(delete_at),
-                ..metadata
-            })
-            .await?;
+            file.metadata_mut().delete_at = Some(delete_at);
+            file.update_metadata().await?;
         }
         Ok(())
     }
@@ -66,12 +62,12 @@ impl DB {
     pub async fn file_owner(&self, name: &str) -> Result<Option<String>> {
         Ok(Files::load_async(name, &self.0)
             .await?
-            .map(|m| m.metadata().expect("all files have metadata").owner.clone()))
+            .map(|m| m.metadata().owner.clone()))
     }
 
     pub async fn load_file(&self, name: &str) -> Result<Option<File>> {
         if let Some(file) = Files::load_async(name, &self.0).await? {
-            if let Some(delete_at) = file.metadata().and_then(|m| m.delete_at) {
+            if let Some(delete_at) = file.metadata().delete_at {
                 if Utc::now() > delete_at {
                     file.delete().await?;
                     return Ok(None);
@@ -87,7 +83,11 @@ impl DB {
         let mut tries = 0;
         // TODO auto increase
         let length = 4;
-        let mut file = loop {
+        let metadata = Metadata {
+            delete_at: ttl.map(|ttl| Utc::now() + ttl),
+            owner,
+        };
+        Ok(loop {
             let name = loop {
                 let id = ReadableAlphanumeric.sample_string(&mut rand::thread_rng(), length);
                 if !RESERVED_URLS.contains(&id.as_str()) {
@@ -95,12 +95,22 @@ impl DB {
                 }
             };
             tries += 1;
-            match Files::build(&name).create_async(&self.0).await {
+            match Files::build_with_metadata(&name, metadata.clone())
+                .create_async(&self.0)
+                .await
+            {
                 Ok(file) => break file,
                 Err(bonsaidb_files::Error::Database(
                     bonsaidb::core::Error::UniqueKeyViolation { .. },
                 )) if tries > 5 => {
-                    let file = Files::load_or_create_async(&name, true, &self.0).await?;
+                    let mut file = Files::load_or_create_with_metadata_async(
+                        &name,
+                        metadata.clone(),
+                        true,
+                        &self.0,
+                    )
+                    .await?;
+                    *file.metadata_mut() = metadata;
                     file.truncate(0, Truncate::RemovingStart).await?;
                     break file;
                 }
@@ -109,14 +119,6 @@ impl DB {
                 )) => continue,
                 Err(err) => return Err(err.into()),
             }
-        };
-
-        file.update_metadata(Some(Metadata {
-            delete_at: ttl.map(|ttl| Utc::now() + ttl),
-            owner,
-        }))
-        .await?;
-
-        Ok(file)
+        })
     }
 }
