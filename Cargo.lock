@@ -648,6 +648,7 @@ version = "0.4.0"
 source = "git+https://github.com/khonsulabs/bonsaidb#542cdccecc6876a43f47f858efd4a47c72301557"
 dependencies = [
  "bonsaidb-core",
+ "bonsaidb-files",
  "bonsaidb-local",
  "derive-where",
 ]
@@ -2086,7 +2087,7 @@ checksum = "0c520e05135d6e763148b6426a837e239041653ba7becd2e538c076c738025fc"
 
 [[package]]
 name = "pastemp"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "actix-multipart",
  "actix-utils",
@@ -2098,7 +2099,6 @@ dependencies = [
  "askama_actix",
  "async-trait",
  "bonsaidb",
- "bonsaidb-files",
  "chrono",
  "derive_more",
  "env_logger",

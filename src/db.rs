@@ -1,10 +1,10 @@
 use bonsaidb::{
     core::schema::{self, Qualified},
+    files::{
+        direct::{self, Async},
+        FileConfig, FilesSchema, Truncate,
+    },
     local::{config::Builder, AsyncDatabase},
-};
-use bonsaidb_files::{
-    direct::{self, Async},
-    FileConfig, FilesSchema, Truncate,
 };
 use chrono::{Duration, Utc};
 use rand::distributions::DistString;
@@ -100,7 +100,7 @@ impl DB {
                 .await
             {
                 Ok(file) => break file,
-                Err(bonsaidb_files::Error::Database(
+                Err(bonsaidb::files::Error::Database(
                     bonsaidb::core::Error::UniqueKeyViolation { .. },
                 )) if tries > 5 => {
                     let mut file = Files::load_or_create_with_metadata_async(
@@ -114,7 +114,7 @@ impl DB {
                     file.truncate(0, Truncate::RemovingStart).await?;
                     break file;
                 }
-                Err(bonsaidb_files::Error::Database(
+                Err(bonsaidb::files::Error::Database(
                     bonsaidb::core::Error::UniqueKeyViolation { .. },
                 )) => continue,
                 Err(err) => return Err(err.into()),
