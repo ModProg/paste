@@ -306,8 +306,8 @@ impl Display for FileName {
 #[routes]
 #[delete("{id}.{ext}")]
 #[delete("{id}")]
-#[get("delete/{id}")]
 #[get("delete/{id}.{ext}")]
+#[get("delete/{id}")]
 async fn delete_entry(
     Path(FileName { id, .. }): Path<FileName>,
     config: Data<Config>,
