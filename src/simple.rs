@@ -202,6 +202,8 @@ async fn get_ext(
                             );
 
                             for line in LinesWithEndings::from(&file) {
+                                // Necessary for the used toml syntax
+                                let line = &line.replace('\r', "");
                                 if html_generator
                                     .parse_html_for_line_which_includes_newline(line)
                                     .is_err()
