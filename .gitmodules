@@ -1,3 +1,6 @@
 [submodule "grammars/sublime_toml_highlighting"]
 	path = grammars/sublime_toml_highlighting
 	url = https://github.com/jasonwilliams/sublime_toml_highlighting
+[submodule "grammars/fnscript"]
+	path = grammars/fnscript
+	url = https://github.com/ModProg/fnscript
