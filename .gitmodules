@@ -4,3 +4,6 @@
 [submodule "grammars/fnscript"]
 	path = grammars/fnscript
 	url = https://github.com/ModProg/fnscript
+[submodule "bat"]
+	path = bat
+	url = https://github.com/sharkdp/bat

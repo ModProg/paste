@@ -2,9 +2,9 @@
 
 ## Simple API
 ### Retrieve Data
-The server decides based on the UserAgent whether to send the data as a raw file or embeded in a website. To differentiated browsers from non browsers it uses the `Mozilla` all modern browsers (even IE) send.
+The server decides based on the UserAgent whether to send the data as a raw file or embedded in a website. To differentiated browsers from non browsers it uses the `Mozilla` all modern browsers (even IE) send.
 
-For a browser this will return a HTML with the file embeded and displayed correctly with added controls for e.g. deleting the entry. For all other requests (mainly tools like curl) the file will be returned as raw data.
+For a browser this will return a HTML with the file embedded and displayed correctly with added controls for e.g. deleting the entry. For all other requests (mainly tools like curl) the file will be returned as raw data.
 
 - get("/:id")      ->  return entry as text
 - get("/:id.:ext") ->  return entry as the expect type for the extension

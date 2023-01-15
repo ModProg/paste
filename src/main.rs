@@ -5,7 +5,10 @@ use anyhow::Result;
 use bonsaidb::local::config::StorageConfiguration;
 use include_dir::include_dir;
 use log::{error, info};
-use syntect::parsing::{SyntaxDefinition, SyntaxSet};
+use syntect::{
+    dumps::from_uncompressed_data,
+    parsing::{SyntaxDefinition, SyntaxSet},
+};
 
 use config::Config;
 use db::DB;
@@ -37,7 +40,9 @@ async fn main() -> Result<()> {
 
     let database = Data::new(DB::new().await?);
     let config = Data::new(config);
-    let mut syntaxes = SyntaxSet::load_defaults_newlines().into_builder();
+    let syntaxes: SyntaxSet = from_uncompressed_data(include_bytes!("../grammars/syntaxes.bin"))
+        .expect("included syntaxes are valid");
+    let mut syntaxes = syntaxes.into_builder();
     for file in include_dir!("$CARGO_MANIFEST_DIR/grammars")
         .find("**/*.sublime-syntax")
         .expect("correct glob")
