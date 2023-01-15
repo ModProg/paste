@@ -210,7 +210,7 @@ dependencies = [
  "actix-server",
  "actix-service",
  "actix-utils",
- "actix-web-codegen 4.1.0",
+ "actix-web-codegen",
  "ahash 0.7.6",
  "bytes",
  "bytestring",
@@ -235,17 +235,6 @@ dependencies = [
  "socket2",
  "time 0.3.17",
  "url",
-]
-
-[[package]]
-name = "actix-web-codegen"
-version = "4.0.0"
-source = "git+https://github.com/ModProg/actix-web?branch=advanced_route_macro#904cf042367d24cd68b1e1c609a391b777a1c58f"
-dependencies = [
- "actix-router",
- "proc-macro2",
- "quote",
- "syn",
 ]
 
 [[package]]
@@ -2298,7 +2287,6 @@ dependencies = [
  "actix-multipart",
  "actix-utils",
  "actix-web",
- "actix-web-codegen 4.0.0",
  "actix-web-lab",
  "anyhow",
  "askama",

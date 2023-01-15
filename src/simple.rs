@@ -13,8 +13,8 @@ use actix_web::{
     post,
     web::Data,
     HttpResponse, Responder, ResponseError, Result,
+    routes
 };
-use actix_web_codegen::routes;
 use actix_web_lab::extract::Path;
 use askama::Template;
 use askama_actix::TemplateToResponse;

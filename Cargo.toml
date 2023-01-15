@@ -8,7 +8,6 @@ edition = "2021"
 actix-multipart = "0.4.0"
 actix-utils = "3.0.1"
 actix-web = "4.2.1"
-actix-web-codegen = { git = "https://github.com/ModProg/actix-web", branch = "advanced_route_macro" }
 actix-web-lab = "0.18.9"
 anyhow = "1.0.68"
 askama = { version = "0.11.1", features = ["with-actix-web"] }
