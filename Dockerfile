@@ -11,6 +11,7 @@ RUN cargo build --release --locked
 
 COPY src ./src
 COPY grammars ./grammars
+COPY bat/assets/syntaxes.bin ./grammars/
 COPY config.toml ./
 COPY templates ./templates
 
