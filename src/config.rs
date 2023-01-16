@@ -16,6 +16,7 @@ pub struct Config {
     pub max_age: Duration,
     #[serde_as(as = "DurationSeconds<i64>")]
     pub time_to_delete: Duration,
+    pub base_url: String,
 }
 
 impl Config {

@@ -2,25 +2,26 @@ use std::{borrow::Borrow, fmt::Display, str};
 
 use actix_multipart::Multipart;
 use actix_web::{
-    cookie::Cookie,
+    cookie::{Cookie, CookieJar},
     dev::HttpServiceFactory,
     error::ErrorInternalServerError,
     get,
+    guard::GuardContext,
     http::{
         header::{self, ContentDisposition, DispositionParam, DispositionType},
         StatusCode,
     },
-    post,
-    web::Data,
+    post, routes,
+    web::{Bytes, Data, Payload},
     HttpResponse, Responder, ResponseError, Result,
-    routes
 };
 use actix_web_lab::extract::Path;
 use askama::Template;
 use askama_actix::TemplateToResponse;
 use chrono::{Duration, Utc};
 use futures::{future::ready, StreamExt, TryStreamExt};
-use mime_guess::mime::{APPLICATION_OCTET_STREAM, IMAGE};
+use futures_util::Stream;
+use mime_guess::mime::{self, APPLICATION_OCTET_STREAM, IMAGE};
 use rand::distributions::{Alphanumeric, DistString};
 use serde::Deserialize;
 use syntect::{html::ClassedHTMLGenerator, parsing::SyntaxSet, util::LinesWithEndings};
@@ -44,6 +45,7 @@ pub fn scope() -> impl HttpServiceFactory {
         download,
         get_ext,
         post_form,
+        post_raw,
         index,
         redir_down,
     )
@@ -358,16 +360,12 @@ impl ResponseError for UploadError {
     }
 }
 
-#[post("/")]
-async fn post_form(
-    payload: Multipart,
-    database: Data<DB>,
-    Cookies(mut cookies): Cookies,
-    config: Data<Config>,
-) -> Result<impl Responder> {
-    let mut multipart = payload;
-    let mut extension = None;
-
+async fn create_file<E: ResponseError + 'static>(
+    mut data: impl Stream<Item = Result<Bytes, E>> + Unpin,
+    database: &Data<DB>,
+    cookies: &mut CookieJar,
+    config: &Data<Config>,
+) -> Result<String> {
     let owner = if let Some(owner) = cookies.get(OWNER_COOKIE) {
         owner.value().to_owned()
     } else {
@@ -381,9 +379,80 @@ async fn post_form(
         .await
         .map_err(ErrorInternalServerError)?;
 
+    const FILE_LIMIT: usize = 10_000_000;
+    let mut limit: usize = FILE_LIMIT;
+    while let Some(data) = data.try_next().await? {
+        if let Some(l) = limit.checked_sub(data.len()) {
+            limit = l;
+        } else {
+            return Err(UploadError::FieldTooBig("file", FILE_LIMIT).into());
+        }
+        file.append(&data).await.map_err(ErrorInternalServerError)?;
+    }
+
+    if file
+        .contents()
+        .await
+        .map_err(ErrorInternalServerError)?
+        .is_empty()
+    {
+        file.delete().await.map_err(ErrorInternalServerError)?;
+        return Err(UploadError::NoData.into());
+    }
+
+    Ok(file.name().to_string())
+}
+
+fn response(
+    name: String,
+    cookies: CookieJar,
+    extension: Option<String>,
+    config: &Data<Config>,
+) -> impl Responder {
+    let name = name.clone() + &extension.map(|e| format!(".{e}")).unwrap_or_default();
+    HttpResponse::Found()
+        .append_header((header::LOCATION, name.clone()))
+        .cookie_delta(&cookies)
+        .body(format!(
+            "{}{name}",
+            if !config.base_url.is_empty() && !config.base_url.ends_with('/') {
+                format!("{}{}", config.base_url, "/")
+            } else {
+                format!("{}", config.base_url)
+            }
+        ))
+}
+
+#[post("/")]
+async fn post_raw(
+    payload: Payload,
+    database: Data<DB>,
+    Cookies(mut cookies): Cookies,
+    config: Data<Config>,
+) -> Result<impl Responder> {
+    create_file(payload, &database, &mut cookies, &config)
+        .await
+        .map(|it| response(it, cookies, None, &config))
+}
+
+fn is_form(it: &GuardContext) -> bool {
+    it.header::<header::ContentType>().map_or(false, |it| {
+        it.0.type_() == mime::MULTIPART && it.0.subtype() == mime::FORM_DATA
+    })
+}
+
+#[post("/", guard = "is_form")]
+async fn post_form(
+    payload: Multipart,
+    database: Data<DB>,
+    Cookies(mut cookies): Cookies,
+    config: Data<Config>,
+) -> Result<impl Responder> {
+    let mut multipart = payload;
+    let mut extension = None;
+    let mut file = None;
+
     while let Some(mut field) = multipart.try_next().await? {
-        const FILE_LIMIT: usize = 10_000_000;
-        let mut limit: usize = FILE_LIMIT;
         match field.name() {
             "data" => {
                 if let Some(file_name) = field.content_disposition().get_filename() {
@@ -398,15 +467,7 @@ async fn post_form(
                         }
                     }
                 }
-                while let Some(data) = field.try_next().await? {
-                    if let Some(l) = limit.checked_sub(data.len()) {
-                        limit = l;
-                    } else {
-                        field.for_each(|_| ready(())).await;
-                        return Err(UploadError::FieldTooBig("file", FILE_LIMIT).into());
-                    }
-                    file.append(&data).await.map_err(ErrorInternalServerError)?;
-                }
+                file = Some(create_file(field, &database, &mut cookies, &config).await?);
             }
             "extension" => {
                 let mut buf = String::new();
@@ -424,34 +485,15 @@ async fn post_form(
             }
             name => {
                 let name = name.to_string();
-                field.for_each(|_| ready(())).await;
-                multipart
-                    .for_each(|field| async {
-                        if let Ok(field) = field {
-                            field.for_each(|_| ready(())).await;
-                        }
-                    })
-                    .await;
                 return Err(UploadError::InvalidField(name).into());
             }
         }
     }
 
-    if file
-        .contents()
-        .await
-        .map_err(ErrorInternalServerError)?
-        .is_empty()
-    {
-        file.delete().await.map_err(ErrorInternalServerError)?;
-        return Err(UploadError::NoData.into());
-    }
-
-    Ok(HttpResponse::Found()
-        .append_header((
-            header::LOCATION,
-            file.name().to_string() + &extension.map(|e| format!(".{e}")).unwrap_or_default(),
-        ))
-        .cookie_delta(&cookies)
-        .finish())
+    Ok(response(
+        file.ok_or_else(|| UploadError::NoData)?,
+        cookies,
+        extension,
+        &config
+    ))
 }
