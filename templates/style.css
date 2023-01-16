@@ -226,7 +226,8 @@ bottom-border {
 
 main {
   flex-grow: 1;
-  max-height: 600px;
+  /* Figure out something better */
+  max-height: max(600px, calc(100vh - 200px));
   gap: inherit;
   display: flex;
   flex-direction: column;

@@ -106,6 +106,8 @@ async fn download(Path(file_name): Path<FileName>, db: Data<DB>) -> Result<impl 
 #[routes]
 #[get("raw/{id}.{ext}")]
 #[get("raw/{id}")]
+#[get("{id}.{ext}", guard = "no_browser")]
+#[get("{id}", guard = "no_browser")]
 async fn raw(
     Path(FileName { id, ext }): Path<FileName>,
     database: Data<DB>,
@@ -134,6 +136,22 @@ async fn raw(
             .customize()
             .with_status(StatusCode::NOT_FOUND))
     }
+}
+
+fn no_browser(it: &GuardContext) -> bool {
+    const MOZILLA: &[u8] = b"Mozilla";
+    !it.head()
+        .headers
+        .get(header::USER_AGENT)
+        .map_or(false, |it| {
+            let it = it.as_bytes();
+            for i in 0..it.len() - MOZILLA.len() {
+                if &it[i..(i + MOZILLA.len())] == MOZILLA {
+                    return true;
+                }
+            }
+            false
+        })
 }
 
 #[routes]
@@ -183,7 +201,7 @@ async fn get_ext(
                     }
                     .to_response()
                 }
-                _ if file.len() < 10_000 => {
+                _ if file.len() < 50_000 => {
                     if let Ok(file) =
                         String::from_utf8(file.to_vec().await.map_err(ErrorInternalServerError)?)
                     {
@@ -494,6 +512,6 @@ async fn post_form(
         file.ok_or_else(|| UploadError::NoData)?,
         cookies,
         extension,
-        &config
+        &config,
     ))
 }
