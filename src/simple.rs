@@ -426,19 +426,22 @@ fn response(
     cookies: CookieJar,
     extension: Option<String>,
     config: &Data<Config>,
+    redir: bool,
 ) -> impl Responder {
     let name = name.clone() + &extension.map(|e| format!(".{e}")).unwrap_or_default();
-    HttpResponse::Found()
-        .append_header((header::LOCATION, name.clone()))
-        .cookie_delta(&cookies)
-        .body(format!(
-            "{}{name}",
-            if !config.base_url.is_empty() && !config.base_url.ends_with('/') {
-                format!("{}{}", config.base_url, "/")
-            } else {
-                format!("{}", config.base_url)
-            }
-        ))
+    let mut res = HttpResponse::Ok();
+    if redir {
+        res = HttpResponse::Found();
+        res.append_header((header::LOCATION, name.clone()));
+    }
+    res.cookie_delta(&cookies).body(format!(
+        "{}{name}",
+        if !config.base_url.is_empty() && !config.base_url.ends_with('/') {
+            format!("{}{}", config.base_url, "/")
+        } else {
+            format!("{}", config.base_url)
+        }
+    ))
 }
 
 #[post("/")]
@@ -450,7 +453,7 @@ async fn post_raw(
 ) -> Result<impl Responder> {
     create_file(payload, &database, &mut cookies, &config)
         .await
-        .map(|it| response(it, cookies, None, &config))
+        .map(|it| response(it, cookies, None, &config, false))
 }
 
 fn is_form(it: &GuardContext) -> bool {
@@ -513,5 +516,6 @@ async fn post_form(
         cookies,
         extension,
         &config,
+        true,
     ))
 }
