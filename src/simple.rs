@@ -432,7 +432,7 @@ fn response(
         .append_header((header::LOCATION, name.clone()))
         .cookie_delta(&cookies)
         .body(format!(
-            "{}{name}",
+            "{}{name}\n",
             if !config.base_url.is_empty() && !config.base_url.ends_with('/') {
                 format!("{}{}", config.base_url, "/")
             } else {
