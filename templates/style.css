@@ -13,7 +13,7 @@ html {
 body {
   max-width: min(800px, calc(100% - 40px));
   margin-inline: auto;
-  min-height: 100vh;
+  height: 100vh;
   box-sizing: border-box;
   margin-block: 0;
   padding-top: 2em;
@@ -225,9 +225,8 @@ bottom-border {
 }
 
 main {
-  flex-grow: 1;
-  /* Figure out something better */
-  max-height: max(600px, calc(100vh - 200px));
+  flex: 1;
+  min-height: 200px;
   gap: inherit;
   display: flex;
   flex-direction: column;
