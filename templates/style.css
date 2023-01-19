@@ -4,6 +4,7 @@
   scrollbar-color: var(--fg-scrollbar) var(--color-background);
   transition-duration: 0.25s;
   font-family: sans-serif;
+  tab-size: 4;
 }
 
 html {
