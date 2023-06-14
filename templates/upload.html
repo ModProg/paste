@@ -53,5 +53,14 @@
             console.log(image);
         }
     });
+    document.body.addEventListener('dragenter', event => event.preventDefault())
+    document.body.addEventListener('dragover', event => event.preventDefault())
+    document.body.addEventListener('drop', (event) => {
+        event.preventDefault();
+        if (event.dataTransfer.files.length > 0) {
+            document.querySelector("#file").files = event.dataTransfer.files
+            document.querySelector("#file_form").submit()
+        }
+    })
 </script>
 {% endblock %}
