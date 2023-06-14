@@ -5,31 +5,31 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-actix-multipart = "0.4.0"
+actix-multipart = "0.6.0"
 actix-utils = "3.0.1"
-actix-web = "4.2.1"
-actix-web-lab = "0.18.9"
-anyhow = "1.0.68"
-askama = { version = "0.11.1", features = ["with-actix-web"] }
-askama_actix = "0.13.0"
-async-trait = "0.1.61"
+actix-web = "4.3.1"
+actix-web-lab = "0.19.1"
+anyhow = "1.0.71"
+askama = { version = "0.12.0", features = ["with-actix-web", "serde-json"] }
+askama_actix = "0.14.0"
+async-trait = "0.1.68"
 bonsaidb = { git = "https://github.com/khonsulabs/bonsaidb", features = ["local-full", "files", "async"] }
-chrono = { version = "0.4.23", features = ["serde"] }
+chrono = { version = "0.4.26", features = ["serde"] }
 derive_more = "0.99.17"
 env_logger = "0.10.0"
-futures = "0.3.25"
-futures-util = "0.3.25"
+futures = "0.3.28"
+futures-util = "0.3.28"
 include_dir = { version = "0.7.3", features = ["glob"] }
-log = "0.4.17"
+log = "0.4.19"
 mime_guess = "2.0.4"
 rand = "0.8.5"
-serde = "1.0.152"
-serde_with = { version = "2.2.0", features = ["chrono"] }
+serde = "1.0.164"
+serde_with = { version = "3.0.0", features = ["chrono"] }
 syntect = "5.0.0"
-thiserror = "1.0.38"
-tokio = { version = "1.24.1", features = ["full"] }
-url = { version = "2.3.1", features = ["serde"] }
+thiserror = "1.0.40"
+tokio = { version = "1.28.2", features = ["full"] }
+url = { version = "2.4.0", features = ["serde"] }
 
 [dependencies.figment]
-version = "0.10.8"
+version = "0.10.10"
 features = ["toml", "env"]
