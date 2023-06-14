@@ -34,7 +34,7 @@
         <script>
             document.querySelector("#copy").hidden=false
             function copy() {
-                navigator.clipboard.writeText({{copy|json}})
+                navigator.clipboard.writeText({{copy|json|safe}})
             }
             // TODO wait for FF https://bugzilla.mozilla.org/show_bug.cgi?id=1809106
             // async function copy() {
