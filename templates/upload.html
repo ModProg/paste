@@ -25,7 +25,7 @@
     </input-container>
     <input class="btn filled blue" type="submit" value="Paste" />
 </form>
-<form method="post" enctype="multipart/form-data">
+<form method="post" enctype="multipart/form-data" id="file_form">
     <input-container style="flex-direction:column; gap: 1ex">
         You can also upload a file directly:
         <div style="display: flex;">
@@ -39,6 +39,18 @@
     document.body.addEventListener('keydown', (event) => {
         if(event.key === "Enter" && (event.metaKey || event.ctrlKey)) {
             event.target.form?.submit();
+        }
+    });
+    document.body.addEventListener('paste', (event) => {
+        if(event.clipboardData.files.length > 0) {
+            document.querySelector("#file").files = event.clipboardData.files
+            document.querySelector("#file_form").submit()
+        }
+        console.log(event.clipboardData.files[0])
+        console.log(event.clipboardData.items[0])
+        if (event.clipboardData.types.includes("Files")) {
+            let image = event.clipboardData.getData("Files")
+            console.log(image);
         }
     });
 </script>
