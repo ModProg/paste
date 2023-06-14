@@ -253,6 +253,10 @@ row {
   display: flex;
 }
 
+*[hidden] {
+  display: none !important
+}
+
 dialog {
   position: fixed;
   margin: auto;

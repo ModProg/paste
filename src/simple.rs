@@ -192,12 +192,14 @@ async fn get_ext(
                         file_name: FileName,
                         delete_at: Option<DateTime>,
                         owner: bool,
+                        copy: Option<String>,
                     }
 
                     Image {
                         file_name,
                         delete_at,
                         owner,
+                        copy: None,
                     }
                     .to_response()
                 }
@@ -212,6 +214,7 @@ async fn get_ext(
                             file_name: FileName,
                             delete_at: Option<DateTime>,
                             owner: bool,
+                            copy: Option<String>,
                         }
 
                         if let Some(syntax) = syntax {
@@ -229,10 +232,11 @@ async fn get_ext(
                                     .is_err()
                                 {
                                     return Ok(UnHighlighted {
-                                        code: file,
+                                        code: file.clone(),
                                         file_name,
                                         delete_at,
                                         owner,
+                                        copy: Some(file),
                                     }
                                     .to_response()
                                     .customize());
@@ -246,6 +250,7 @@ async fn get_ext(
                                 file_name: FileName,
                                 delete_at: Option<DateTime>,
                                 owner: bool,
+                                copy: Option<String>,
                             }
 
                             Highlighted {
@@ -253,14 +258,16 @@ async fn get_ext(
                                 file_name,
                                 delete_at,
                                 owner,
+                                copy: Some(file),
                             }
                             .to_response()
                         } else {
                             UnHighlighted {
-                                code: file,
+                                code: file.clone(),
                                 file_name,
                                 delete_at,
                                 owner,
+                                copy: Some(file),
                             }
                             .to_response()
                         }
@@ -271,12 +278,14 @@ async fn get_ext(
                             file_name: FileName,
                             delete_at: Option<DateTime>,
                             owner: bool,
+                            copy: Option<String>,
                         }
 
                         WrongType {
                             file_name,
                             delete_at,
                             owner,
+                            copy: None,
                         }
                         .to_response()
                     }
@@ -288,12 +297,14 @@ async fn get_ext(
                         file_name: FileName,
                         delete_at: Option<DateTime>,
                         owner: bool,
+                        copy: Option<String>,
                     }
 
                     TooLarge {
                         file_name,
                         delete_at,
                         owner,
+                        copy: None,
                     }
                     .to_response()
                 }
@@ -357,7 +368,7 @@ async fn delete_entry(
             .map_err(ErrorInternalServerError)?;
     }
 
-    Ok(HttpResponse::Found()
+    Ok(HttpResponse::SeeOther()
         .append_header((header::LOCATION, "/"))
         .finish())
 }
@@ -427,8 +438,8 @@ fn response(
     extension: Option<String>,
     config: &Data<Config>,
 ) -> impl Responder {
-    let name = name.clone() + &extension.map(|e| format!(".{e}")).unwrap_or_default();
-    HttpResponse::Found()
+    let name = name + &extension.map(|e| format!(".{e}")).unwrap_or_default();
+    HttpResponse::SeeOther()
         .append_header((header::LOCATION, name.clone()))
         .cookie_delta(&cookies)
         .body(format!(
@@ -436,7 +447,7 @@ fn response(
             if !config.base_url.is_empty() && !config.base_url.ends_with('/') {
                 format!("{}{}", config.base_url, "/")
             } else {
-                format!("{}", config.base_url)
+                config.base_url.to_string()
             }
         ))
 }
@@ -509,7 +520,7 @@ async fn post_form(
     }
 
     Ok(response(
-        file.ok_or_else(|| UploadError::NoData)?,
+        file.ok_or(UploadError::NoData)?,
         cookies,
         extension,
         &config,

@@ -23,7 +23,7 @@ impl Config {
     pub fn load(path: &Path) -> Result<Self> {
         Figment::new()
             .merge(Toml::string(include_str!("../config.toml")))
-            .merge(Toml::file(&path))
+            .merge(Toml::file(path))
             .merge(Env::prefixed("PASTEMP_"))
             .extract()
             .context("Loading Config")
