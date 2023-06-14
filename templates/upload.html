@@ -3,7 +3,8 @@
 {% block content %}
 <form method="post" enctype="multipart/form-data" class="grow">
     <input-container class="grow">
-        <textarea name="data" id="text" autocomplete="off" required="required" placeholder="Some code"></textarea>
+        <textarea name="data" id="text" autocomplete="off" required="required"
+            placeholder="Some code (Ctrl+⮠ to submit)" autofocus></textarea>
         <border>
             <left-border> </left-border>
             <bottom-border>
@@ -34,4 +35,11 @@
         </div>
     </input-container>
 </form>
+<script>
+    document.body.addEventListener('keydown', (event) => {
+        if(event.key === "Enter" && (event.metaKey || event.ctrlKey)) {
+            event.target.form?.submit();
+        }
+    });
+</script>
 {% endblock %}
