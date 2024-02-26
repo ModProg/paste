@@ -13,7 +13,7 @@ anyhow = "1.0.71"
 askama = { version = "0.12.0", features = ["with-actix-web", "serde-json"] }
 askama_actix = "0.14.0"
 async-trait = "0.1.68"
-bonsaidb = { git = "https://github.com/khonsulabs/bonsaidb", features = ["local-full", "files", "async"] }
+bonsaidb = { version = "0.5", features = ["local-full", "files", "async"] }
 chrono = { version = "0.4.26", features = ["serde"] }
 derive_more = "0.99.17"
 env_logger = "0.10.0"

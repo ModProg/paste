@@ -18,7 +18,7 @@ COPY templates ./templates
 # To trigger cargo to recompile
 RUN touch src/main.rs
 
-RUN cargo install --path . --offline
+RUN cargo install --path . --offline --locked
 
 FROM debian:buster-slim
 
