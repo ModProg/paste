@@ -14,7 +14,7 @@
         </border>
     </input-container>
     <input-container>
-        <input name="extension" type="text" id="extention" placeholder="ext" />
+        <input name="extension" type="text" id="extension" placeholder="ext" />
         <border>
             <left-border> </left-border>
             <bottom-border>
@@ -30,17 +30,90 @@
         You can also upload a file directly:
         <div style="display: flex;">
             <input style="flex-grow: 1" name="data" autocomplete="off" id="file" required="required"
-                placeholder="Some code" type="file"></input>
+                placeholder="Some code" type="file">
             <input class="btn filled blue" type="submit" value="Paste" />
         </div>
     </input-container>
 </form>
 <script>
     document.body.addEventListener('keydown', (event) => {
-        if(event.key === "Enter" && (event.metaKey || event.ctrlKey)) {
+        if (event.key === "Enter" && (event.metaKey || event.ctrlKey)) {
             event.target.form?.submit();
         }
     });
+    let TAB = 4;
+    let text = document.querySelector("#text");
+    text.addEventListener('keydown', (event) => {
+        if (event.key === "Tab") {
+            let cursor;
+            let lines = text.value.split(/(?<=\n\r?)/);
+            if (/\n\r?$/.test(lines[lines.length -1])) {
+                lines.push("");
+            }
+            function line_for_cursor(cursor) {
+                let char = 0;
+                let cursor_line = 0;
+                let in_line_idx = 0;
+                for ([idx, line] of lines.entries()) {
+                    in_line_idx = cursor - char;
+                    cursor_line = idx;
+                    char += line.length;
+                    console.log(`cursor: ${cursor} < ${char}`);
+                    if (char > cursor) {
+                        break;
+                    }
+                }
+                return {
+                    line: cursor_line,
+                    char: in_line_idx,
+                    cursor
+                }
+            }
+            function update_text() {
+                text.value = lines.join("");
+                event.preventDefault()
+            }
+            
+            if (text.selectionStart != text.selectionEnd) {
+                let start = line_for_cursor(text.selectionStart);
+                let end = line_for_cursor(text.selectionEnd);
+                let start_line = lines[start.line];
+                let total_change = 0;
+                for (let line = start.line; line <= end.line; line++) {
+                    if (event.shiftKey) {
+                        let shortned = lines[line].replace(/^ {1,4}/, "");
+                        total_change += shortned.length - lines[line].length;
+                        lines[line] = shortned;
+                    } else {
+                        total_change += 4;
+                        lines[line] = " ".repeat(TAB) + lines[line];
+                    }
+                }
+                update_text();
+                text.selectionStart = start.cursor + lines[start.line].length - start_line.length;
+                text.selectionEnd = end.cursor + total_change;
+            } else {
+                cursor = text.selectionStart;
+                let cursor2 = line_for_cursor(cursor);
+                if (event.shiftKey) {
+                    let shortned = lines[cursor2.line].replace(/^ {1,4}/, "");
+                    cursor -= lines[cursor2.line].length - shortned.length;
+                    lines[cursor2.line] = shortned;
+                    update_text();
+                    text.selectionStart = text.selectionEnd = cursor;
+                } else {
+                    let line_before_cursor = lines[cursor2.line].slice(0, cursor2.char);
+                    if (/^\s*$/.test(line_before_cursor)) {
+                        let tab_to_add = TAB - (line_before_cursor.length % TAB);
+                        lines[cursor2.line] = " ".repeat(tab_to_add) + lines[cursor2.line];
+                        cursor += tab_to_add;
+                        update_text();
+                        text.selectionStart = text.selectionEnd = cursor;
+                    }
+                }
+            }
+        }
+    })
     document.body.addEventListener('paste', (event) => {
         if(event.clipboardData.files.length > 0) {
             document.querySelector("#file").files = event.clipboardData.files

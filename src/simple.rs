@@ -482,9 +482,12 @@ async fn post_form(
     let mut file = None;
 
     while let Some(mut field) = multipart.try_next().await? {
-        match field.name() {
+        match field.name().unwrap_or_default() {
             "data" => {
-                if let Some(file_name) = field.content_disposition().get_filename() {
+                if let Some(file_name) = field
+                    .content_disposition()
+                    .and_then(ContentDisposition::get_filename)
+                {
                     if file_name.contains('.') {
                         let ext = file_name
                             .split('.')
