@@ -21,7 +21,7 @@ use askama_actix::TemplateToResponse;
 use chrono::{Duration, Utc};
 use futures::{future::ready, StreamExt, TryStreamExt};
 use futures_util::Stream;
-use mime_guess::mime::{self, APPLICATION_OCTET_STREAM, IMAGE};
+use mime_guess::mime::{self, APPLICATION_OCTET_STREAM, IMAGE, VIDEO};
 use rand::distributions::{Alphanumeric, DistString};
 use serde::Deserialize;
 use syntect::{html::ClassedHTMLGenerator, parsing::SyntaxSet, util::LinesWithEndings};
@@ -196,6 +196,24 @@ async fn get_ext(
                     }
 
                     Image {
+                        file_name,
+                        delete_at,
+                        owner,
+                        copy: None,
+                    }
+                    .to_response()
+                }
+                Some(mime) if mime.type_() == VIDEO => {
+                    #[derive(Template)]
+                    #[template(path = "video.html")]
+                    struct Video {
+                        file_name: FileName,
+                        delete_at: Option<DateTime>,
+                        owner: bool,
+                        copy: Option<String>,
+                    }
+
+                    Video {
                         file_name,
                         delete_at,
                         owner,
